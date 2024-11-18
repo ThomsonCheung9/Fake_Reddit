@@ -10,12 +10,9 @@
   "description": "",
   "dependencies": {
     "cors": "^2.8.5",
+    "eslint": "^9.13.0",
     "express": "^4.21.1",
-    "mongoose": "^8.7.2",
+    "mongoose": "^8.8.0",
     "nodemon": "^3.1.7"
-  },
-  "devDependencies": {
-    "eslint": "^9.14.0",
-    "globals": "^15.12.0"
   }
 }
