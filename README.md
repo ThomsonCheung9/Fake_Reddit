@@ -4,6 +4,27 @@
 Add design docs in *images/*
 
 ## Instructions to setup and run project
+In client directory do the following  
+-npm install  
+-npm install axios  
+-npm install react-router-dom  
+
+In the server directory do the following  
+-npm install express  
+-npm install mongoose  
+-npm install nodemon  
+-npm install bcrypt  
+
+To setup database
+-node server/initializeDB.js  
+-node server/init.js  
+
+To run the program
+-nodemon server/server.js  
+-mongod
+-npm start in the client directory
+node init.js Admin123@gmail.com Admin Password123
+
 Clearly explain the steps required to install and configure necessary packages,
 for both the server and the client, and the sequence of steps required to get
 your application running.

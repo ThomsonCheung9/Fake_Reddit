@@ -1,38 +1,312 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+/*#region Banner*/
+#header { /* These are just the default CSS properties for h1 header tags */
+  border-bottom: 1px solid black;
   display: flex;
-  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+.main {
+  display: flex;
+}
+
+#titleLink { 
+  text-decoration: none;
+  color: #ff4500;
+  font-size: 30px;
+  margin-left: 10px;
+}
+
+.titleContainer {
+  justify-content: left;
+  align-items: center;
+  width: 33.33%;
+  display: flex;
+}
+
+.titleContainer:hover {
+  cursor: pointer;
+}
+
+.searchBar {
+  justify-content: center;
+  align-items: center;
+  width: 33.33%;
+  margin: 0 auto;
+  display: flex;
+}
+
+#searchInput {
+  border-radius: 20px;
+  width: 70%;
+  height: 40%;
+  background-color: lightgray;;
+  padding: 10px;
+  border-style: none;
+}
+
+.titleCreatePost {
+  justify-content: right;
+  align-items: center;
+  width: 33.33%;
+  background-color: antiquewhite;
+  display: flex;
+}
+
+.createPostButton {
+  color: black;
+  background-color: lightgray;
+  width: 20%;
+  height: 70%;
+  border-radius: 20px;
+  padding: 10px;
+  border-style: none;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  display: flex;
+  margin-right: 10px;
+}
+
+.createGreyButton {
+  color: black;
+  background-color: lightgray;
+  width: 20%;
+  height: 70%;
+  border-radius: 20px;
+  padding: 10px;
+  border-style: none;
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  margin-right: 10px;
+}
+
+.createPostButton:hover {
+  background-color: #ff4500;
+}
+
+.titleContainer, .searchBar, .titleCreatePost {
+  height: 50px;
+  background-color: white;
+}
+/*#endregion*/
+
+/*#region post.js*/
+.HomePageParent {
+  height: 100vh;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+#HomePageParent:hover{
+  cursor: pointer;
+}
+
+.HomepageTop {
+  display: flex;
+  flex-direction: column;
+}
+
+.description-container {
+  margin: 20px;
+}
+
+.timestamp-container {
+  margin: 20px;
+}
+
+.sort-post-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+#post-count-container {
+  margin-left: 20px;
+}
+
+.sort-button {
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.main-heading-container {
+  flex-grow: 1;
+  margin-right: 20px;
+}
+
+.community-header {
+  margin-left: 20px;
+  background-color: whitesmoke;
+}
+
+.post-number {
+  margin-left: 20px;
+}
+
+.HomePost {
+  background-color: white;
+  width: 100%;
+  margin-left: 20px;
+}
+
+.community-user-timestamp {
+  background-color: white;
+  font-size: 15px;
+}
+
+.link-flair {
+  border-radius: 20px;
+  background-color: gray;
+  display: inline-block;
+  text-align: center;
+  padding: 5px;
+  margin-bottom: 20px;
+}
+
+.HomePostContent {
+  margin-bottom: 20px;
+}
+
+.view-count {
+  border-radius: 20px;
+  background-color: lightgray;
+  display: inline-block;
+  text-align: center;
+  padding: 5px;
+  margin-right: 5px;
+}
+
+.comment-count {
+  border-radius: 20px;
+  background-color: lightgray;
+  display: inline-block;
+  text-align: center;
+  padding: 5px;
+  margin-right: 5px;
+}
+
+.HomePostCount {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dotted black;
+}
+
+.HomePostCommunity {
+  color: (83, 83, 83);
+}
+
+.HomePostUser {
+  color: rgb(83, 83, 83);
+}
+
+.HomePostTime {
+  color: slategray;
+}
+
+.HomePostSecond {
+  background-color: bisque;
+  font-size: 30px;
+  color: black;
+}
+/*#endregion*/
+
+/*#region PostHeader*/
+.title-btns {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+}
+
+
+/*#endregion*/
+
+
+.content-container {
+  display: flex;
+  flex-direction: row;
+}
+
+/* Sidebar */
+.Sidebar {
+  background-color: white;
+  padding: 10px;
+  border-right: 1px solid black;
+  position: fixed;
+  top: 50px;
+  left: 0;
+  height: 100%;
+  z-index: 999;
+}
+
+.nav-section {
+  margin-top: 20px;
+}
+
+/* NavLink.css */
+.nav-link {
+  text-decoration: none;
+  color: black;
+  padding: 10px;
+  display: inline-block;
+  background-color: lightgrey;
+  margin-bottom: 5px;
+}
+
+.nav-link:hover, .nav-link.active {
+  background-color: #ff4500; 
+}
+
+/* CreateCommunityButton.css */
+.create-community-btn {
+  padding: 10px;
+  background-color: grey;
   color: white;
+  border: none;
+  cursor: pointer;
 }
 
-.App-link {
-  color: #61dafb;
+.create-community-btn:hover, .create-community-btn.active {
+  background-color: #ff4500;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* CommunityList */
+.communities-list {
+  list-style: none;
+  padding-left: 0;
 }
+
+/*#region Page View*/
+.HomePostCount1 {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+
+.commentUser {
+  font-size: 15px;
+  text-decoration: underline;
+}
+
+.commentButtonContainer {
+  margin-bottom: 18px;
+}
+
+.add-comment-button, .submitPostbtn, .engenderCommunitybtn {
+  background-color: gray;
+  border-radius: 10px;
+  padding: 10px;
+  width: 200px;
+  border-style: none;
+  margin-top: 20px;
+}
+
+/*#endregion*/
+
+.create-community-container {
+  padding: 20px;
+} 
