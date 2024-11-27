@@ -7,8 +7,56 @@ import CommunityHeader from './Communities/CommunityHeader';
 import CreateCommunity from './CreateCommunityPage.js';
 import CreatePostPage from './CreatePostPage.js';
 import axios from 'axios';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import WelcomePage from './Welcome/WelcomePage.js';
+import LoginPage from './Welcome/LoginPage.js';
+import RegisterPage from './Welcome/RegisterPage.js';
+axios.defaults.withCredentials = true;
 
-export default function Phreddit() {
+
+export default function AppPhreddit() {
+  const [userData, setUserData] = useState(null);
+  const [loadingBanner, setLoadingBanner] = useState(true);
+
+
+
+  const fetchSession = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/session', { withCredentials: true });
+      if (response.data.success) {
+        setUserData(response.data.user);
+      } else {
+        console.error('No active session found.');
+      }
+    } catch (error) {
+      console.error('Failed to fetch session:', error);
+    } finally {
+      setLoadingBanner(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSession();
+  }, []);
+  
+  if (loadingBanner) {
+    return <div></div>;
+  }
+  
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<WelcomePage setUserData={setUserData} userData={userData}/>} />
+        <Route path="/login" element={<LoginPage setUserData={setUserData} userData={userData}/>} />
+        <Route path="/home" element={<Phreddit setUserData={setUserData} userData={userData}/>} />
+        <Route path="/register" element={<RegisterPage setUserData={setUserData}
+        userData={userData}/>}/>
+      </Routes>
+    </Router>
+  );
+}
+
+function Phreddit( {userData, setUserData} ) {
 
   const [orderPost, setOrderPost] = useState("Newest");
   const [postsOnScreen, setPostsOnScreen] = useState([]);
@@ -159,7 +207,8 @@ export default function Phreddit() {
 
   return (
     <div style={{marginLeft: '180px', marginTop: '50px'}}>
-      <Banner handleSearch={handleSearch} setCurrentView={setCurrentView} currentView={currentView}/>
+      <Banner handleSearch={handleSearch} setCurrentView={setCurrentView}
+      currentView={currentView} userData={userData} setUserData={setUserData}/>
       <div className="content-container">
         <SideBar
           currentView={currentView}
@@ -204,14 +253,16 @@ export default function Phreddit() {
                           comments={comments} linkflairs={linkflairs} order={orderPost}
                           isCommunity={isCommunity} selectedPost={selectedPost} 
                           setSelectedPost={setSelectedPost} setOnCommentPage={setOnCommentPage}
-                          onCommentPage={onCommentPage} fetchPosts={fetchPosts}/>
+                          onCommentPage={onCommentPage} fetchPosts={fetchPosts}
+                          userData={userData} setUserData={setUserData} />
               </>
             ) : (
               <PostList postsOnScreen={postsOnScreen} posts={posts} communities={communities}
                         comments={comments} linkflairs={linkflairs} order={orderPost}
                         isCommunity={isCommunity} selectedPost={selectedPost} 
                         setSelectedPost={setSelectedPost} setOnCommentPage={setOnCommentPage}
-                        onCommentPage={onCommentPage} fetchPosts={fetchPosts}/>
+                        onCommentPage={onCommentPage} fetchPosts={fetchPosts}
+                        userData={userData} setUserData={setUserData}/>
             )
           ) : (
             <p>Loading...</p>

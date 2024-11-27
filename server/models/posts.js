@@ -9,6 +9,7 @@ const PostSchema = new Schema({
     postedDate: { type: Date, default: Date.now },
     views: { type: Number, default: 0 },
     commentIDs: [{ type: Schema.Types.ObjectId, ref: 'Comment' }],
+    votes: { type: Number, default: 0 },
 });
 
 PostSchema.virtual('url').get(function() {

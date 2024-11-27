@@ -6,7 +6,10 @@ const mongoose = require('mongoose');
 const cors = require('cors')
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true,
+}));
 app.use(express.json());
 
 //change 127.0.0.1 to localhost
@@ -19,6 +22,137 @@ const Post = require('./models/posts');
 const Community = require('./models/communities');
 const Comment = require('./models/comments');
 const LinkFlair = require('./models/linkflairs');
+const User = require('./models/users');
+const bcrypt = require('bcrypt');
+const session = require('express-session');
+
+app.use(session({
+  secret: 'your-secret-key',
+  resave: false, 
+  saveUninitialized: true,
+  cookie: {
+    secure: false,
+    maxAge: 24 * 60 * 60 * 1000,
+  },
+}));
+
+//#region WelcomePages
+
+app.get('/api/session', (req, res) => {
+  if (req.session && req.session.user) {
+    res.json({ success: true, user: req.session.user });
+  } else {
+    res.status(401).json({ success: false, message: 'No active session found.' });
+  }
+});
+
+app.post('/api/logout', (req, res) => {
+  if (req.session) {
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Error destroying session:', err);
+        return res.status(500).json({ success: false, message: 'Logout failed.' });
+      }
+      res.clearCookie('connect.sid'); // Clear the session cookie
+      res.json({ success: true, message: 'Logged out successfully.' });
+      console.log("Succeeded so what now")
+    });
+  } else {
+    res.status(400).json({ success: false, message: 'No active session to log out.' });
+  }
+});
+
+
+app.post('/api/login', async (req, res) => {
+  if (req.session && req.session.user) {
+    return res.status(400).json({
+      success: false,
+      message: 'You are already logged in.',
+    });
+  }
+
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Email is incorrect' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'password is incorrect' });
+    }
+
+    req.session.user = {
+      id: user._id,
+      email: user.email,
+      displayName: user.displayName,
+      isAdmin: user.isAdmin,
+      reputation: user.reputation,
+    };
+
+    res.json({ success: true, message: 'Login successful', user: req.session.user });
+  } catch (error) {
+    console.error('Error during login:', error);
+    res.status(500).json({ success: false, message: 'Login failed due to server error' });
+  }
+});
+
+
+app.post('/api/register', async (req, res) => {
+  const { firstName, lastName, email, displayName, password} = req.body;
+
+  if (!firstName || !lastName || !email || !displayName || !password) {
+    return res.status(400).json({ success: false, message: 'All fields are required.' });
+  }
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Email is already registered.' });
+    }
+
+    const displayNameExists = await User.findOne({ displayName });
+    if (displayNameExists) {
+      return res.status(400).json({ success: false, message: 'Display name is already taken.' });
+    }
+
+    const lowerPassword = password.toLowerCase();
+    if (
+      lowerPassword.includes(firstName.toLowerCase()) ||
+      lowerPassword.includes(lastName.toLowerCase()) ||
+      lowerPassword.includes(displayName.toLowerCase()) ||
+      lowerPassword.includes(email.toLowerCase().split('@')[0])
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must not contain your first name, last name, display name, or email ID.',
+      });
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+      displayName,
+      password: hashedPassword,
+      isAdmin: false,
+      reputation: 100,
+    });
+
+    await newUser.save();
+    res.json({ success: true, message: 'Registration successful.'});
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ success: false, message: 'Registration failed due to server error.' });
+  }
+});
+
+//#endregion
 
 app.put('/api/posts/:id/views', async (req, res) => {
     try {
@@ -34,6 +168,22 @@ app.put('/api/posts/:id/views', async (req, res) => {
     } catch (error) {
         res.status(500).send(error.message);
     }
+});
+
+app.put('/api/posts/:id/votes', async (req, res) => {
+  try {
+      const post = await Post.findById(req.params.id);
+      if (!post) {
+          return res.status(404).send("Post not found");
+      }
+
+      post.views += 1;
+      await post.save();
+
+      res.status(200).json({ views: post.views });
+  } catch (error) {
+      res.status(500).send(error.message);
+  }
 });
 
 app.post('/api/comments', async (req, res) => {

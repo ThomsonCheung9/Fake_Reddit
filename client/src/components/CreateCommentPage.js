@@ -1,10 +1,8 @@
-import React, { useState, useContext } from 'react';
-import { ModelContext } from '../modelContext';
+import React, { useState } from 'react';
 import axios from 'axios';
 
 const CreateCommentPage = ({ comment = null, isReply = false,
   onCommentAdded, post, fetchPosts }) => {
-  const modelInstance = useContext(ModelContext);
   const [contentEntry, setContentEntry] = useState('');
   const [userEntry, setUserEntry] = useState('');
   const [error, setError] = useState('');

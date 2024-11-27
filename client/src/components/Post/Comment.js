@@ -1,5 +1,4 @@
 import React, { useContext } from 'react';
-import { ModelContext } from '../../modelContext';
 import { calculateTimeDifference, orderComment } from '../../utility.js';
 
 const Comment = ({ commentsIDsOfPost, depth = 0, handleBackToList,

@@ -1,10 +1,9 @@
-import { useContext } from 'react';
 import { postIDToCommunity, matchLinkFlair, calculateTimeDifference, getCommentsInPost } from '../../utility';
 
 
 const Post = ({ postID, title, content, linkFlairID, postedBy, postedDate,
   commentIDs, views, isCommunity = false, posts, communities, comments,
-   linkflairs, clickPost}) => {
+   linkflairs, clickPost, votes}) => {
 
   const communityName = !isCommunity ? postIDToCommunity(postID, communities) : '';
   const amountOfComment = getCommentsInPost(postID, posts, comments).length;
@@ -43,6 +42,7 @@ const Post = ({ postID, title, content, linkFlairID, postedBy, postedDate,
       <div className="HomePostCount">
         <span className="view-count">Views: {views}</span>
         <span className="comment-count">Comments: {amountOfComment}</span>
+        <span className="comment-count">Votes: {votes}</span>
       </div>
     </div>
   );

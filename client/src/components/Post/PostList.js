@@ -4,7 +4,8 @@ import { getCommentsInPost, orderComment } from '../../utility.js';
 import PostPageView from './PostPageView.js';
 import CreateCommentPage from '../CreateCommentPage.js';
 const PostList = ({ postsOnScreen, posts, communities, comments, linkflairs, 
-  order, selectedPost, setSelectedPost, onCommentPage, setOnCommentPage, fetchPosts
+  order, selectedPost, setSelectedPost, onCommentPage, setOnCommentPage, fetchPosts,
+  userData, setUserData
  }) => {
 
   //#region buttons sorting
@@ -70,6 +71,7 @@ const PostList = ({ postsOnScreen, posts, communities, comments, linkflairs,
         comments={comments}
         linkflairs={linkflairs}
         fetchPosts={fetchPosts}
+        userData={userData} setUserData={setUserData}
       />
     );
   }
@@ -87,8 +89,10 @@ const PostList = ({ postsOnScreen, posts, communities, comments, linkflairs,
           postedDate={post.postedDate}
           commentIDs={post.commentIDs}
           views={post.views}
+          votes={post.votes}
           posts={posts} communities={communities} comments={comments} linkflairs={linkflairs}
           clickPost={() => {setSelectedPost(post)}}
+          userData={userData} setUserData={setUserData}
         />
       ))}
     </div>

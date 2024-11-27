@@ -4,11 +4,12 @@ import { postIDToCommunity, calculateTimeDifference, getCommentsInPost, matchLin
 import axios from 'axios';
 
 const PostPageView = ({ handleBackToList, onCommentPage, setOnCommentPage, post, 
-  posts, communities, linkflairs, comments, fetchPosts
+  posts, communities, linkflairs, comments, fetchPosts, userData, setUserData
 }) => {
   const amountOfComment = getCommentsInPost(post._id, posts, comments).length;
   
   const [views, setViews] = useState(post.views);
+  const [votes, setVotes] = useState(post.votes);
   const [commentsIDsOfPost, setCommentsIDsOfPost] = useState([]);
 
   const refreshComments = () => {
@@ -70,6 +71,7 @@ const PostPageView = ({ handleBackToList, onCommentPage, setOnCommentPage, post,
       <div className="HomePostCount1">
         <span className="view-count">Views: {views}</span>
         <span className="comment-count">Comments: {amountOfComment}</span>
+        <span className="comment-count">Votes: {votes}</span>
       </div>
 
       <div className="HomePostCount">
