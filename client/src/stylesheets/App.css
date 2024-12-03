@@ -275,6 +275,13 @@
   background-color: #ff4500;
 }
 
+.create-community-btn.disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* CommunityList */
 .communities-list {
   list-style: none;

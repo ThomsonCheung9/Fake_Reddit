@@ -59,6 +59,7 @@ function createCommunity(communityObj) {
         postIDs: communityObj.postIDs,
         startDate: communityObj.startDate,
         members: communityObj.members,
+        createdBy: communityObj.createdBy,
     });
     return newCommunityDoc.save();
 }
@@ -183,6 +184,7 @@ async function initializeDB() {
         startDate: new Date('August 10, 2014 04:18:00'),
         members: ['rollo', 'shemp', 'catlady13', 'astyanax', 'trucknutz69'],
         memberCount: 4,
+        createdBy: 'rollo'
     };
     const community2 = { // community object 2
         communityID: 'community2',
@@ -192,6 +194,7 @@ async function initializeDB() {
         startDate: new Date('May 4, 2017 08:32:00'),
         members: ['MarcoArelius', 'astyanax', 'outtheretruth47', 'bigfeet'],
         memberCount: 4,
+        createdBy: 'MarcoArelius'
     };
     let communityRef1 = await createCommunity(community1);
     let communityRef2 = await createCommunity(community2);

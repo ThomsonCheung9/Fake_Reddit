@@ -217,6 +217,7 @@ function Phreddit( {userData, setUserData} ) {
           setSelectedPost={setSelectedPost}
           setOnCommentPage={setOnCommentPage}
           fetchPosts={fetchPosts}
+          userData={userData}
         />
         <div className="HomePost">
           {!onCommentPage && !creatingCommunity && currentView !== 'createPost' && 
@@ -248,15 +249,19 @@ function Phreddit( {userData, setUserData} ) {
               />
             ) : currentView.startsWith('community/') && currentCommunity && !selectedPost ? (
               <>
-                <CommunityHeader community={communities.find(comm => comm._id.toString() === currentCommunity.toString())} />
-                <PostList postsOnScreen={postsOnScreen} posts={posts} communities={communities}
-                          comments={comments} linkflairs={linkflairs} order={orderPost}
-                          isCommunity={isCommunity} selectedPost={selectedPost} 
-                          setSelectedPost={setSelectedPost} setOnCommentPage={setOnCommentPage}
-                          onCommentPage={onCommentPage} fetchPosts={fetchPosts}
-                          userData={userData} setUserData={setUserData} />
-              </>
-            ) : (
+                  <CommunityHeader 
+                    community={communities.find(comm => comm._id.toString() === currentCommunity.toString())} 
+                    userData={userData}
+                    fetchPosts={fetchPosts}
+                  />
+                  <PostList postsOnScreen={postsOnScreen} posts={posts} communities={communities}
+                        comments={comments} linkflairs={linkflairs} order={orderPost}
+                        isCommunity={isCommunity} selectedPost={selectedPost} 
+                        setSelectedPost={setSelectedPost} setOnCommentPage={setOnCommentPage}
+                        onCommentPage={onCommentPage} fetchPosts={fetchPosts}
+                        userData={userData} setUserData={setUserData}/>
+                </>
+              ) : (
               <PostList postsOnScreen={postsOnScreen} posts={posts} communities={communities}
                         comments={comments} linkflairs={linkflairs} order={orderPost}
                         isCommunity={isCommunity} selectedPost={selectedPost} 
