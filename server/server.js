@@ -38,6 +38,8 @@ app.use(session({
 
 //#region WelcomePages
 
+
+
 app.get('/api/session', (req, res) => {
   if (req.session && req.session.user) {
     res.json({ success: true, user: req.session.user });
@@ -154,6 +156,85 @@ app.post('/api/register', async (req, res) => {
 
 //#endregion
 
+//#region post and comment vote management
+
+// Update votes on a post
+app.put('/api/posts/:id/vote', async (req, res) => {
+  try {
+    const { voteType } = req.body;
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).send("Post not found");
+    }
+
+    const user = await User.findOne({ displayName: post.postedBy });
+
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+
+    // Update post votes and user reputation
+    if (voteType === 'up') {
+      post.votes += 1;
+      user.reputation += 5; // Increase reputation by 5
+    } else if (voteType === 'down') {
+      post.votes -= 1;
+      user.reputation -= 10; // Decrease reputation by 10
+    } else {
+      return res.status(400).send("Invalid vote type");
+    }
+
+    // Save updates to post and user
+    await post.save();
+    await user.save();
+
+    res.status(200).json({ votes: post.votes, userReputation: user.reputation});
+  } catch (error) {
+    console.error('Error in vote route:', error);
+    res.status(500).send(error.message);
+  }
+});
+
+app.put('/api/comments/:id/vote', async (req, res) => {
+  try {
+    const { voteType } = req.body;
+    const comment = await Comment.findById(req.params.id);
+
+    if (!comment) {
+      return res.status(404).send("Comment not found");
+    }
+
+    const user = await User.findOne({ displayName: comment.commentedBy });
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    // Update comment votes and user reputation
+    if (voteType === 'up') {
+      comment.votes += 1;
+      user.reputation += 5;
+    } else if (voteType === 'down') {
+      comment.votes -= 1;
+      user.reputation -= 10;
+    } else {
+      return res.status(400).send("Invalid vote type");
+    }
+
+    await comment.save();
+    await user.save();
+
+    res.status(200).json({ votes: comment.votes, userReputation: user.reputation });
+  } catch (error) {
+    console.error('Error in comment vote route:', error);
+    res.status(500).send(error.message);
+  }
+});
+
+
+//#endregion
+
 app.put('/api/posts/:id/views', async (req, res) => {
     try {
         const post = await Post.findById(req.params.id);
@@ -266,6 +347,7 @@ app.post('/api/community/:communityID/addPost', async (req, res) => {
   }
 });
 
+//#region Data fectching
 
 app.get('/api/communities', async (req, res) => {
     try {
@@ -345,6 +427,8 @@ app.post('/api/linkflairs', async (req, res) => {
     res.status(500).send("Failed to create link flair");
   }
 });
+
+//#endregion
 
 app.get("/", function (req, res) {
     res.send("Hello Phreddit!");

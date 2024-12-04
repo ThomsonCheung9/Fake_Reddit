@@ -190,6 +190,16 @@
   margin-right: 5px;
 }
 
+.comment-votes {
+  background-color: lightgray;
+  display: inline-block;
+  text-align: center;
+  padding: 5px;
+  margin-right: 5px;
+  border-radius: 100px;
+}
+
+
 .HomePostCount {
   margin-bottom: 10px;
   padding-bottom: 10px;

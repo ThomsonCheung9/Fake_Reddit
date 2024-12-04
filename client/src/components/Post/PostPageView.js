@@ -38,6 +38,22 @@ const PostPageView = ({ handleBackToList, onCommentPage, setOnCommentPage, post,
     setCommentsIDsOfPost(postComments);
   }, [post._id]);
 
+  const handleVote = async (voteType) => {
+    if (userData.reputation < 50) {
+      alert(`Your reputation is ${userData.reputation}, which is less than the required 50 to vote.`);
+      return;
+    }
+
+    try {
+      const response = await axios.put(`http://localhost:8000/api/posts/${post._id}/vote`, { voteType });
+      setVotes(response.data.votes);
+    } catch (error) {
+      console.error('Error updating votes:', error);
+    }
+  };
+
+
+
   const handleAddComment = () => {
     setOnCommentPage([post, null, false, refreshComments]);
   };
@@ -46,10 +62,10 @@ const PostPageView = ({ handleBackToList, onCommentPage, setOnCommentPage, post,
     <div className="HomePost">
       <div className="community-user-timestamp">
         <span className="HomePostCommunity">
-          {postIDToCommunity(post._id, communities)} |
+          {postIDToCommunity(post._id, communities)} | 
         </span>
         <span className="HomePostTime">
-          {calculateTimeDifference(post.postedDate)}
+          {calculateTimeDifference(post.postedDate)} | 
         </span>
         <span className="HomePostUser">
           {post.postedBy}
@@ -75,9 +91,19 @@ const PostPageView = ({ handleBackToList, onCommentPage, setOnCommentPage, post,
       </div>
 
       <div className="HomePostCount">
-        <button className="comment-count" onClick={handleAddComment}>
-          Add a comment
-        </button>
+        {userData && ( // Only show buttons if userData exists
+          <>
+            <button className="comment-count" onClick={handleAddComment}>
+              Add a comment
+            </button>
+            <button className="comment-count" onClick={() => handleVote('up')}>
+              Up Vote Post
+            </button>
+            <button className="comment-count" onClick={() => handleVote('down')}>
+              Down Vote Post
+            </button>
+          </>
+        )}
       </div>
 
       <div className="postBody">
@@ -85,7 +111,7 @@ const PostPageView = ({ handleBackToList, onCommentPage, setOnCommentPage, post,
          handleBackToList={handleBackToList} onCommentPage={onCommentPage}
          setOnCommentPage={setOnCommentPage} setCommentsIDsOfPost={setCommentsIDsOfPost}
          communities={communities} comments={comments}
-         fetchPosts={fetchPosts} post={post}/>}
+         fetchPosts={fetchPosts} post={post} userData={userData}/>}
       </div>
     </div>
   );

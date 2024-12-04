@@ -55,6 +55,7 @@ const PostList = ({ postsOnScreen, posts, communities, comments, linkflairs,
         posts={posts}
         comments={comments}
         fetchPosts={fetchPosts}
+        userData={userData}
       />
     );
   }
