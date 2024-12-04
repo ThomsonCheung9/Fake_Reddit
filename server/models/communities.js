@@ -9,6 +9,7 @@ const CommunitySchema = new Schema({
     startDate: { type: Date, default: Date.now },
     members: [{ type: String, required: true }],
     memberCount: { type: Number, default: 0 },
+    createdBy: { type: String, required: true},
 });
 
 CommunitySchema.virtual('url').get(function() {

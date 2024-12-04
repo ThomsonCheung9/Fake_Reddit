@@ -378,5 +378,72 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+app.put('/api/communities/:communityId/join', async (req, res) => {
+  try {
+    const { communityId } = req.params;
+    const { displayName } = req.body;
+
+    if (!displayName) {
+      return res.status(400).json({ success: false, message: 'Display name is required' });
+    }
+
+    const community = await Community.findById(communityId);
+    if (!community) {
+      return res.status(404).json({ success: false, message: 'Community not found' });
+    }
+
+    if (community.members.includes(displayName)) {
+      return res.status(400).json({ success: false, message: 'Already a member of this community' });
+    }
+
+    community.members.push(displayName);
+    community.memberCount += 1;
+    await community.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Joined community successfully', 
+      memberCount: community.memberCount 
+    });
+  } catch (error) {
+    console.error('Error joining community:', error);
+    res.status(500).json({ success: false, message: 'Failed to join community' });
+  }
+});
+
+app.put('/api/communities/:communityId/leave', async (req, res) => {
+  try {
+    const { communityId } = req.params;
+    const { displayName } = req.body;
+
+    if (!displayName) {
+      return res.status(400).json({ success: false, message: 'Display name is required' });
+    }
+
+    const community = await Community.findById(communityId);
+    if (!community) {
+      return res.status(404).json({ success: false, message: 'Community not found' });
+    }
+
+    const memberIndex = community.members.indexOf(displayName);
+    if (memberIndex === -1) {
+      return res.status(400).json({ success: false, message: 'Not a member of this community' });
+    }
+
+    community.members.splice(memberIndex, 1);
+    community.memberCount -= 1;
+    await community.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Left community successfully', 
+      memberCount: community.memberCount 
+    });
+  } catch (error) {
+    console.error('Error leaving community:', error);
+    res.status(500).json({ success: false, message: 'Failed to leave community' });
+  }
+});
+
 
 app.listen(8000, () => {console.log("Server listening on port 8000...");});
