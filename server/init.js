@@ -79,6 +79,7 @@ function createComment(commentObj) {
     commentedBy: commentObj.commentedBy,
     commentedDate: commentObj.commentedDate,
     commentIDs: commentObj.commentIDs,
+    votes: commentObj.votes,
   });
   return newCommentDoc.save();
 }
@@ -141,6 +142,7 @@ async function initializeDB() {
       commentIDs: [],
       commentedBy: 'bigfeet',
       commentedDate: new Date('September 10, 2024 09:43:00'),
+      votes: 70,
     };
     let commentRef7 = await createComment(comment7);
     
@@ -149,6 +151,7 @@ async function initializeDB() {
         commentIDs: [commentRef7],
         commentedBy: 'outtheretruth47',
         commentedDate: new Date('September 10, 2024 07:18:00'),
+        votes: 10,
     };
     let commentRef6 = await createComment(comment6);
     
@@ -157,6 +160,7 @@ async function initializeDB() {
         commentIDs: [],
         commentedBy: 'bigfeet',
         commentedDate: new Date('September 09, 2024 017:03:00'),
+        votes: 30,
     }
     let commentRef5 = await createComment(comment5);
     
@@ -165,6 +169,7 @@ async function initializeDB() {
         commentIDs: [commentRef6],
         commentedBy: "astyanax",
         commentedDate: new Date('September 10, 2024 6:41:00'),
+        votes: 45,
     };
     let commentRef4 = await createComment(comment4);
     
@@ -173,6 +178,7 @@ async function initializeDB() {
         commentIDs: [],
         commentedBy: 'rollo',
         commentedDate: new Date('August 23, 2024 09:31:00'),
+        votes: 32,
     };
     let commentRef3 = await createComment(comment3);
     
@@ -181,6 +187,7 @@ async function initializeDB() {
         commentIDs: [],
         commentedBy: 'astyanax',
         commentedDate: new Date('August 23, 2024 10:57:00'),
+        votes: 25,
     };
     let commentRef2 = await createComment(comment2);
     
@@ -189,6 +196,7 @@ async function initializeDB() {
         commentIDs: [commentRef3],
         commentedBy: 'shemp',
         commentedDate: new Date('August 23, 2024 08:22:00'),
+        votes: 18,
     };
     let commentRef1 = await createComment(comment1);
     

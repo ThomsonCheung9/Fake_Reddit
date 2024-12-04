@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 const CreateCommentPage = ({ comment = null, isReply = false,
-  onCommentAdded, post, fetchPosts }) => {
+  onCommentAdded, post, fetchPosts, userData }) => {
   const [contentEntry, setContentEntry] = useState('');
-  const [userEntry, setUserEntry] = useState('');
   const [error, setError] = useState('');
 
   const formatDateString = (givenDate) => {
@@ -32,15 +31,11 @@ const CreateCommentPage = ({ comment = null, isReply = false,
       setError('Content cannot be more than 500 characters');
       return;
     }
-    if (!userEntry) {
-      setError('Username is required');
-      return;
-    }
 
     try {
       const newComment = {
         content: contentEntry,
-        commentedBy: userEntry,
+        commentedBy: userData.displayName,
         commentedDate: new Date(),
         commentIDs: [],
       };
@@ -57,7 +52,6 @@ const CreateCommentPage = ({ comment = null, isReply = false,
         post.commentIDs.push(response.data.id);
       }
       setContentEntry('');
-      setUserEntry('');
       setError('');
       if (onCommentAdded) {
         onCommentAdded();
@@ -83,13 +77,6 @@ const CreateCommentPage = ({ comment = null, isReply = false,
         value={contentEntry}
         onChange={(e) => setContentEntry(e.target.value)}
         className="comment-input"
-      />
-      <input
-        type="text"
-        placeholder="Enter your username*"
-        value={userEntry}
-        onChange={(e) => setUserEntry(e.target.value)}
-        className="username-input"
       />
 
       {error && <div className="error-message">{error}</div>}
