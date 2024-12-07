@@ -11,6 +11,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import WelcomePage from './Welcome/WelcomePage.js';
 import LoginPage from './Welcome/LoginPage.js';
 import RegisterPage from './Welcome/RegisterPage.js';
+import UserProfilePage from './profiles/UserProfilePage.js';
+import EditCommunityPage from './profiles/EditCommunityPage.js';
+import EditPostPage from './profiles/EditPostPage.js';
+import EditCommentPage from './profiles/EditCommentPage.js';
 axios.defaults.withCredentials = true;
 
 
@@ -49,8 +53,11 @@ export default function AppPhreddit() {
         <Route path="/" element={<WelcomePage setUserData={setUserData} userData={userData}/>} />
         <Route path="/login" element={<LoginPage setUserData={setUserData} userData={userData}/>} />
         <Route path="/home" element={<Phreddit setUserData={setUserData} userData={userData}/>} />
-        <Route path="/register" element={<RegisterPage setUserData={setUserData}
-        userData={userData}/>}/>
+        <Route path="/register" element={<RegisterPage setUserData={setUserData} userData={userData}/>}/>
+        <Route path="/profile" element={<UserProfilePage setUserData={setUserData} userData={userData}/>} />
+        <Route path="/edit-community/:communityId" element={<EditCommunityPage userData={userData} />} />
+        <Route path="/edit-post/:postId" element={<EditPostPage userData={userData} />} />
+        <Route path="/edit-comment" element={<EditCommentPage userData={userData} />} />
       </Routes>
     </Router>
   );
@@ -79,23 +86,54 @@ function Phreddit( {userData, setUserData} ) {
       const term = event.target.value;
       setSearchTerm(term);
       setCreatingCommunity(false);
-  
+    
       if (term === '') {
         setSearchResults([]);
         setPostsOnScreen([]);
         setCurrentView('searchResults');
       } else {
         try {
-          const response = await axios.get(`http://localhost:8000/api/search?term=${term}`);
-          const results = response.data;
-          setSearchResults(results);
-          setPostsOnScreen(results);
+          const searchParams = { 
+            term, 
+            order: orderPost,
+            userIdentifier: userData?.displayName || userData?.email
+          };
+  
+          const response = await axios.get('http://localhost:8000/api/search', {
+            params: searchParams
+          });
+  
+          const { userCommunityPosts = [], otherPosts = [], postsWithComments = [] } = response.data;
+          const combinedResults = [
+            ...userCommunityPosts.map(post => ({
+              ...post,
+              type: 'userCommunity',
+              matchingComments: postsWithComments.find(p => p._id === post._id)?.matchingComments || []
+            })),
+            ...otherPosts.map(post => ({
+              ...post,
+              type: 'other',
+              matchingComments: postsWithComments.find(p => p._id === post._id)?.matchingComments || []
+            }))
+          ];
+          const sortedResults = combinedResults.sort((a, b) => {
+            if (orderPost === "Newest") {
+              return new Date(b.postedDate) - new Date(a.postedDate);
+            } else if (orderPost === "Oldest") {
+              return new Date(a.postedDate) - new Date(b.postedDate);
+            }
+            return 0;
+          });
+  
+          setSearchResults(sortedResults);
+          setPostsOnScreen(sortedResults);
           setCurrentView('searchResults');
         } catch (error) {
-          console.error("Error search results:", error);
+          console.error('Error fetching search results:', error);
         }
+  
+        setSelectedPost(null);
       }
-      setSelectedPost(null);
     }
   };
 
@@ -241,17 +279,20 @@ function Phreddit( {userData, setUserData} ) {
                   setCurrentView('home');
                 }}
                 navigateToHome={() => setCurrentView('home')}
+                userData={userData}
               />
             ) : currentView === 'createCommunity' ? (
               <CreateCommunity
                 navigateToCommunityView={navigateToCommunityView}
                 fetchCommunities={fetchPosts}
+                userData={userData}
               />
             ) : currentView.startsWith('community/') && currentCommunity && !selectedPost ? (
               <>
                   <CommunityHeader 
                     community={communities.find(comm => comm._id.toString() === currentCommunity.toString())} 
                     userData={userData}
+                    navigateToHome={() => setCurrentView('home')}
                     fetchPosts={fetchPosts}
                   />
                   <PostList postsOnScreen={postsOnScreen} posts={posts} communities={communities}
@@ -260,7 +301,32 @@ function Phreddit( {userData, setUserData} ) {
                         setSelectedPost={setSelectedPost} setOnCommentPage={setOnCommentPage}
                         onCommentPage={onCommentPage} fetchPosts={fetchPosts}
                         userData={userData} setUserData={setUserData}/>
+              </>
+            ) : currentView === 'searchResults' ? (
+              <div>
+              {postsOnScreen.filter(post => post.type === 'userCommunity').length > 0 && (
+                <>
+                  <h3 style={{ borderBottom: '1px solid #ddd', marginTop: '20px', marginBottom: '10px', marginLeft: '10px' }}>Posts from Your Communities</h3>
+                  <PostList postsOnScreen={postsOnScreen} posts={postsOnScreen.filter(post => post.type === 'userCommunity')} communities={communities}
+                  comments={comments} linkflairs={linkflairs} order={orderPost}
+                  isCommunity={isCommunity} selectedPost={selectedPost} 
+                  setSelectedPost={setSelectedPost} setOnCommentPage={setOnCommentPage}
+                  onCommentPage={onCommentPage} fetchPosts={fetchPosts}
+                  userData={userData} setUserData={setUserData}/>
                 </>
+              )}
+              {postsOnScreen.filter(post => post.type === 'other').length > 0 && (
+                <>
+                  <h3 style={{ borderBottom: '1px solid #ddd', marginTop: '20px', marginBottom: '10px', marginLeft: '10px' }}>Other Posts</h3>
+                  <PostList postsOnScreen={postsOnScreen} posts={postsOnScreen.filter(post => post.type === 'other')} communities={communities}
+                  comments={comments} linkflairs={linkflairs} order={orderPost}
+                  isCommunity={isCommunity} selectedPost={selectedPost} 
+                  setSelectedPost={setSelectedPost} setOnCommentPage={setOnCommentPage}
+                  onCommentPage={onCommentPage} fetchPosts={fetchPosts}
+                  userData={userData} setUserData={setUserData}/>
+                </>
+              )}
+              </div>
               ) : (
               <PostList postsOnScreen={postsOnScreen} posts={posts} communities={communities}
                         comments={comments} linkflairs={linkflairs} order={orderPost}

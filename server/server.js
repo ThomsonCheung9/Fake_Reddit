@@ -434,32 +434,88 @@ app.get("/", function (req, res) {
     res.send("Hello Phreddit!");
 });
 
+async function getUserCommunityPosts(userIdentifier) {
+  try {
+      const userCommunities = await Community.find({ 
+          members: { $elemMatch: { $eq: userIdentifier } } 
+      }).populate('postIDs');
+
+      const postIDs = userCommunities.flatMap(community => 
+          community.postIDs.map(post => post._id)
+      );
+
+      return await Post.find({ _id: { $in: postIDs } });
+  } catch (error) {
+      console.error('Error fetching user community posts:', error);
+      throw error;
+  }
+}
+
 // search
 app.get('/api/search', async (req, res) => {
   const term = req.query.term;
+  const userIdentifier = req.query.userIdentifier;
+  const order = req.query.order || 'Newest';
+
   if (!term) {
       return res.status(400).send("Search term is required");
   }
+
   try {
       const searchTerms = term.toLowerCase().split(' ').filter(t => t.length > 0);
       const matchingComments = await Comment.find({
-          content: { $regex: searchTerms.join('|'), $options: 'i' }
+          content: { $regex: searchTerms.join('|'), $options: 'i' },
       });
-      const postIDsFromComments = matchingComments.map(comment => comment._id);
-      const posts = await Post.find({
+      
+      const postIDsFromComments = [...new Set(matchingComments.map(comment => comment.postID))];
+
+      const baseQuery = {
           $or: [
               { title: { $regex: searchTerms.join('|'), $options: 'i' } },
               { content: { $regex: searchTerms.join('|'), $options: 'i' } },
-              { commentIDs: { $in: postIDsFromComments } }
-          ]
-      })
-      .populate('linkFlairID')
+              { _id: { $in: postIDsFromComments } },
+          ],
+      };
+      const sortOptions = {
+          'Newest': { postedDate: -1 },
+          'Oldest': { postedDate: 1 },
+          'Active': { votes: -1 },
+      };
+      const allMatchingPosts = await Post.find(baseQuery)
+          .populate('linkFlairID')
+          .sort(sortOptions[order]);
 
-      res.json(posts);
+      const userCommunityPosts = userIdentifier
+          ? await getUserCommunityPosts(userIdentifier)
+          : [];
+
+      const userCommunityPostIDs = new Set(userCommunityPosts.map(post => post._id.toString()));
+      const postsInUserCommunities = allMatchingPosts.filter(post =>
+          userCommunityPostIDs.has(post._id.toString())
+      );
+      const otherPosts = allMatchingPosts.filter(post =>
+          !userCommunityPostIDs.has(post._id.toString())
+      );
+
+      const postsWithComments = allMatchingPosts.map(post => {
+          const relevantComments = matchingComments.filter(
+              comment => comment.postID && comment.postID.toString() === post._id.toString()
+          );
+          return {
+              ...post.toObject(),
+              matchingComments: relevantComments
+          };
+      });
+
+      res.json({ 
+          userCommunityPosts: postsInUserCommunities, 
+          otherPosts,
+          postsWithComments 
+      });
   } catch (error) {
-      console.error("Error searching posts:", error);
-      res.status(500).send("Search Error.");
-  }
+      console.error('Error searching posts:', error);
+      res.status(500).send('Search Error.');
+    }
 });
 
 app.put('/api/communities/:communityId/join', async (req, res) => {
@@ -529,5 +585,162 @@ app.put('/api/communities/:communityId/leave', async (req, res) => {
   }
 });
 
+app.put('/api/communities/:communityId', async (req, res) => {
+  try {
+    const { communityId } = req.params;
+    const { name, description } = req.body;
+
+    if (!name || !description) {
+      return res.status(400).json({ message: 'Name and description are required' });
+    }
+
+    const community = await Community.findById(communityId);
+    if (!community) {
+      return res.status(404).json({ message: 'Community not found' });
+    }
+
+    const existingCommunity = await Community.findOne({ 
+      name: { $regex: new RegExp(`^${name}$`, 'i') }, 
+      _id: { $ne: communityId } 
+    });
+
+    if (existingCommunity) {
+      return res.status(400).json({ message: 'A community with this name already exists' });
+    }
+
+    community.name = name;
+    community.description = description;
+
+    await community.save();
+
+    res.json(community);
+  } catch (error) {
+    console.error('Error updating community:', error);
+    res.status(500).json({ message: 'Error updating community', error: error.message });
+  }
+});
+
+app.get('/api/users/:userId', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user details', error: error.message });
+  }
+});
+
+app.get('/api/users/:userId/communities', async (req, res) => {
+  try {
+    const communities = await Community.find({ members: req.session.user.displayName });
+    res.json(communities);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user communities', error: error.message });
+  }
+});
+
+app.get('/api/users/:userId/posts', async (req, res) => {
+  try {
+    const posts = await Post.find({ postedBy: req.session.user.displayName });
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user posts', error: error.message });
+  }
+});
+
+app.get('/api/users/:userId/comments', async (req, res) => {
+  try {
+    const comments = await Comment.find({ commentedBy: req.session.user.displayName });
+    
+    const commentsWithPostTitle = await Promise.all(comments.map(async (comment) => {
+      const post = await Post.findOne({ commentIDs: comment._id });
+      return {
+        ...comment.toObject(),
+        postTitle: post ? post.title : 'Unknown Post'
+      };
+    }));
+
+    res.json(commentsWithPostTitle);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user comments', error: error.message });
+  }
+});
+
+app.delete('/api/communities/:communityId', async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.communityId);
+    if (!community) {
+      return res.status(404).json({ message: 'Community not found' });
+    }
+
+    await Post.deleteMany({ communityID: req.params.communityId });
+    
+    await Community.findByIdAndDelete(req.params.communityId);
+    
+    res.json({ message: 'Community and associated posts deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting community', error: error.message });
+  }
+});
+
+app.delete('/api/posts/:postId', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    await Comment.deleteMany({ postID: req.params.postId });
+    
+    await Post.findByIdAndDelete(req.params.postId);
+    
+    res.json({ message: 'Post and associated comments deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting post', error: error.message });
+  }
+});
+
+app.delete('/api/comments/:commentId', async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    await Comment.deleteMany({ parentCommentID: req.params.commentId });
+    
+    await Comment.findByIdAndDelete(req.params.commentId);
+    
+    res.json({ message: 'Comment and associated replies deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting comment', error: error.message });
+  }
+});
+
+app.put('/api/comments/:commentId', async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ message: 'Content is required' });
+    }
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    comment.content = content;
+    await comment.save();
+
+    res.status(200).json(comment);
+  } catch (error) {
+    console.error('Error updating comment:', error);
+    res.status(500).json({ message: 'Error updating comment', error: error.message });
+  }
+});
 
 app.listen(8000, () => {console.log("Server listening on port 8000...");});
