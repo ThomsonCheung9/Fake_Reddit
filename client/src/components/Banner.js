@@ -77,8 +77,17 @@ export default function Banner({ handleSearch, setCurrentView, currentView,
             }
             </div>
             <div className="titleCreatePost">
-                { userData ? <button className="createPostButton"> {userData.displayName} </button > :
-                 <button className="createGreyButton"> Guest </button>}
+                { userData ? 
+                    <button 
+                        className="createPostButton" 
+                        onClick={() => navigate('/profile')}
+                    > 
+                        {userData.displayName} 
+                    </button> :
+                    <button className="createGreyButton"> 
+                        Guest 
+                    </button>
+                }
             </div>
             <div className="titleCreatePost">
                 <button className="createPostButton" onClick={() => {

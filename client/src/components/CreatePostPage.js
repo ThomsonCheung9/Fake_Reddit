@@ -1,14 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-function CreatePostPage({ communities, linkflairs, addNewPost, navigateToHome }) {
+function CreatePostPage({ communities, linkflairs, addNewPost, navigateToHome, userData }) {
   const [selectedCommunity, setSelectedCommunity] = useState('');
   const [title, setTitle] = useState('');
   const [linkFlair, setLinkFlair] = useState('');
   const [newLinkFlair, setNewLinkFlair] = useState('');
   const [content, setContent] = useState('');
-  const [username, setUsername] = useState('');
   const [errors, setErrors] = useState({});
+
+  const [userCommunities, setUserCommunities] = useState([]);
+  const [otherCommunities, setOtherCommunities] = useState([]);
+
+  useEffect(() => {
+    if (userData) {
+      const joined = communities.filter(comm => 
+        comm.members.includes(userData.displayName)
+      );
+      const notJoined = communities.filter(comm => 
+        !comm.members.includes(userData.displayName)
+      );
+      
+      setUserCommunities(joined);
+      setOtherCommunities(notJoined);
+    }
+  }, [communities, userData]);
 
   const validateForm = () => {
     const validationErrors = {};
@@ -16,7 +32,6 @@ function CreatePostPage({ communities, linkflairs, addNewPost, navigateToHome })
     if (!title || title.length > 100) validationErrors.title = 'Title is required and must be under 100 characters';
     if (newLinkFlair && newLinkFlair.length > 30) validationErrors.newLinkFlair = 'Link flair must be under 30 characters';
     if (!content) validationErrors.content = 'Content is required';
-    if (!username) validationErrors.username = 'Username is required';
     
     if (linkFlair && newLinkFlair) {
       validationErrors.linkFlair = 'You can only choose one: either select a link flair or create a new one';
@@ -37,7 +52,6 @@ function CreatePostPage({ communities, linkflairs, addNewPost, navigateToHome })
     if (newLinkFlair) { 
       try {
         const response = await axios.post('http://localhost:8000/api/linkflairs', { content: newLinkFlair });
-
         flairID = response.data._id;
       } catch (error) {
         console.error('Error creating new link flair:', error);
@@ -50,7 +64,7 @@ function CreatePostPage({ communities, linkflairs, addNewPost, navigateToHome })
       communityID: selectedCommunity,
       title,
       content,
-      postedBy: username,
+      postedBy: userData.displayName,
       linkFlairID: flairID || null,
       postedDate: new Date().toISOString(),
       views: 0,
@@ -71,9 +85,20 @@ function CreatePostPage({ communities, linkflairs, addNewPost, navigateToHome })
         <label>Community (required)</label>
         <select value={selectedCommunity} onChange={(e) => setSelectedCommunity(e.target.value)}>
           <option value="">Select a community</option>
-          {communities.map((community) => (
-            <option key={community._id} value={community._id}>{community.name}</option>
-          ))}
+          {userCommunities.length > 0 && (
+            <optgroup label="Your Communities">
+              {userCommunities.map((community) => (
+                <option key={community._id} value={community._id}>{community.name}</option>
+              ))}
+            </optgroup>
+          )}
+          {otherCommunities.length > 0 && (
+            <optgroup label="Other Communities">
+              {otherCommunities.map((community) => (
+                <option key={community._id} value={community._id}>{community.name}</option>
+              ))}
+            </optgroup>
+          )}
         </select>
         {errors.community && <p style={{ color: 'red' }}>{errors.community}</p>}
       </div>
@@ -91,7 +116,7 @@ function CreatePostPage({ communities, linkflairs, addNewPost, navigateToHome })
   
       <div>
         <label>Link Flair (optional)</label>
-        <select value={linkFlair} onChange={(e) => setLinkFlair(e.target.value)}> {/*use this*/}
+        <select value={linkFlair} onChange={(e) => setLinkFlair(e.target.value)}>
           <option value="">Select a link flair</option>
           {linkflairs.map((flair) => (
             <option key={flair._id} value={flair._id}>{flair.content}</option>
@@ -112,16 +137,6 @@ function CreatePostPage({ communities, linkflairs, addNewPost, navigateToHome })
         <label>Content (required)</label>
         <textarea value={content} onChange={(e) => setContent(e.target.value)} />
         {errors.content && <p style={{ color: 'red' }}>{errors.content}</p>}
-      </div>
-  
-      <div>
-        <label>Username (required)</label>
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        {errors.username && <p style={{ color: 'red' }}>{errors.username}</p>}
       </div>
   
       <button onClick={handleSubmit}>Submit Post</button>

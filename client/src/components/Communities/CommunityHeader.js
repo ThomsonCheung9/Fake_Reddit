@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { calculateTimeDifference } from '../../utility';
 
-export default function CommunityHeader({ community = {}, userData, fetchPosts }) {
+export default function CommunityHeader({ community = {}, userData, navigateToHome, fetchPosts }) {
   const {
+    _id,
     name = 'Unnamed Community',
     description = 'No description available.',
     startDate,
@@ -12,30 +13,41 @@ export default function CommunityHeader({ community = {}, userData, fetchPosts }
     members = [],
     createdBy
   } = community;
-
+  const [localMembers, setLocalMembers] = useState(members);
   const [localMemberCount, setLocalMemberCount] = useState(memberCount);
   const [isMember, setIsMember] = useState(
-    userData ? members.includes(userData.displayName) : false
+    userData ? localMembers.includes(userData.displayName) : false
   );
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    setLocalMembers(members);
+    setLocalMemberCount(memberCount);
+    setIsMember(userData ? members.includes(userData.displayName) : false);
+  }, [members, memberCount, userData]);
+
   const handleJoinLeave = async (action) => {
     if (!userData) return;
-
+  
     try {
-      const response = await axios.put(`http://localhost:8000/api/communities/${community._id}/${action}`, {
+      const response = await axios.put(`http://localhost:8000/api/communities/${_id}/${action}`, {
         displayName: userData.displayName
       });
-
+  
       if (response.data.success) {
         if (action === 'join') {
-          setLocalMemberCount(prev => prev + 1);
+          setLocalMembers((prev) => [...prev, userData.displayName]);
+          setLocalMemberCount((prev) => prev + 1);
           setIsMember(true);
         } else {
-          setLocalMemberCount(prev => prev - 1);
+          setLocalMembers((prev) => prev.filter((member) => member !== userData.displayName));
+          setLocalMemberCount((prev) => prev - 1);
           setIsMember(false);
         }
-        console.log("asd");
+        if (action === 'join' || action === 'leave') {
+          navigateToHome();
+          fetchPosts();
+        }
       }
     } catch (err) {
       console.error(`Error ${action}ing community:`, err);
