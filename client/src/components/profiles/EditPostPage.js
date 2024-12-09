@@ -21,30 +21,30 @@ export default function EditPostPage({ userData }) {
         navigate('/login');
         return;
       }
-
+  
       const postState = location.state?.post;
-
+  
       if (postState) {
         setTitle(postState.title);
         setContent(postState.content);
-        setSelectedCommunity(postState.communityID);
+        setSelectedCommunity(postState.communityID || '');
         setLinkFlair(postState.linkFlairID || '');
         return;
       }
-
+  
       try {
         const response = await axios.get(`http://localhost:8000/api/posts/${postId}`);
         const post = response.data;
         setTitle(post.title);
         setContent(post.content);
-        setSelectedCommunity(post.communityID);
+        setSelectedCommunity(post.communityID || '');
         setLinkFlair(post.linkFlairID || '');
       } catch (error) {
         console.error('Error fetching post details:', error);
         setErrors({ general: 'Failed to fetch post details' });
       }
     };
-
+  
     fetchPostDetails();
   }, [postId, userData, navigate, location.state]);
 
@@ -86,7 +86,7 @@ export default function EditPostPage({ userData }) {
       setErrors(validationErrors);
       return;
     }
-
+  
     try {
       const response = await axios.put(`http://localhost:8000/api/posts/${postId}`, {
         title,
@@ -94,7 +94,7 @@ export default function EditPostPage({ userData }) {
         communityID: selectedCommunity,
         linkFlairID: linkFlair || null,
       });
-
+  
       if (response.status === 200) {
         navigate('/profile');
       }

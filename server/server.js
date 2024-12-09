@@ -466,7 +466,7 @@ app.get('/api/search', async (req, res) => {
       const matchingComments = await Comment.find({
           content: { $regex: searchTerms.join('|'), $options: 'i' },
       });
-      
+
       const postIDsFromComments = [...new Set(matchingComments.map(comment => comment.postID))];
 
       const baseQuery = {
@@ -476,11 +476,13 @@ app.get('/api/search', async (req, res) => {
               { _id: { $in: postIDsFromComments } },
           ],
       };
+
       const sortOptions = {
           'Newest': { postedDate: -1 },
           'Oldest': { postedDate: 1 },
           'Active': { votes: -1 },
       };
+
       const allMatchingPosts = await Post.find(baseQuery)
           .populate('linkFlairID')
           .sort(sortOptions[order]);
@@ -490,32 +492,39 @@ app.get('/api/search', async (req, res) => {
           : [];
 
       const userCommunityPostIDs = new Set(userCommunityPosts.map(post => post._id.toString()));
-      const postsInUserCommunities = allMatchingPosts.filter(post =>
-          userCommunityPostIDs.has(post._id.toString())
-      );
-      const otherPosts = allMatchingPosts.filter(post =>
-          !userCommunityPostIDs.has(post._id.toString())
-      );
+      const postsInUserCommunities = [];
+      const otherPosts = [];
 
-      const postsWithComments = allMatchingPosts.map(post => {
-          const relevantComments = matchingComments.filter(
-              comment => comment.postID && comment.postID.toString() === post._id.toString()
-          );
-          return {
-              ...post.toObject(),
-              matchingComments: relevantComments
-          };
+      allMatchingPosts.forEach(post => {
+          if (userCommunityPostIDs.has(post._id.toString())) {
+              postsInUserCommunities.push(post);
+          } else {
+              otherPosts.push(post);
+          }
       });
 
-      res.json({ 
-          userCommunityPosts: postsInUserCommunities, 
+      const uniquePostsWithComments = postsInUserCommunities
+          .concat(otherPosts)
+          .map(post => ({
+              ...post.toObject(),
+              matchingComments: matchingComments.filter(
+                  comment => comment.postID && comment.postID.toString() === post._id.toString()
+              ),
+          }));
+
+      res.json({
+          userCommunityPosts: postsInUserCommunities,
           otherPosts,
-          postsWithComments 
+          postsWithComments: uniquePostsWithComments,
       });
   } catch (error) {
       console.error('Error searching posts:', error);
       res.status(500).send('Search Error.');
-    }
+  }
+});
+
+app.get('/', (req, res) => {
+  res.status(200).send('Server is running');
 });
 
 app.put('/api/communities/:communityId/join', async (req, res) => {
@@ -620,6 +629,19 @@ app.put('/api/communities/:communityId', async (req, res) => {
   }
 });
 
+app.get('/api/users', async (req, res) => {
+  if (!req.session.user || !req.session.user.isAdmin) {
+    return res.status(403).json({ message: 'Unauthorized: Admin access required' });
+  }
+
+  try {
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching users', error: error.message });
+  }
+});
+
 app.get('/api/users/:userId', async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).select('-password');
@@ -634,7 +656,11 @@ app.get('/api/users/:userId', async (req, res) => {
 
 app.get('/api/users/:userId/communities', async (req, res) => {
   try {
-    const communities = await Community.find({ members: req.session.user.displayName });
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const communities = await Community.find({ members: user.displayName });
     res.json(communities);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching user communities', error: error.message });
@@ -643,7 +669,11 @@ app.get('/api/users/:userId/communities', async (req, res) => {
 
 app.get('/api/users/:userId/posts', async (req, res) => {
   try {
-    const posts = await Post.find({ postedBy: req.session.user.displayName });
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const posts = await Post.find({ postedBy: user.displayName });
     res.json(posts);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching user posts', error: error.message });
@@ -652,7 +682,11 @@ app.get('/api/users/:userId/posts', async (req, res) => {
 
 app.get('/api/users/:userId/comments', async (req, res) => {
   try {
-    const comments = await Comment.find({ commentedBy: req.session.user.displayName });
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const comments = await Comment.find({ commentedBy: user.displayName });
     
     const commentsWithPostTitle = await Promise.all(comments.map(async (comment) => {
       const post = await Post.findOne({ commentIDs: comment._id });
@@ -675,11 +709,14 @@ app.delete('/api/communities/:communityId', async (req, res) => {
       return res.status(404).json({ message: 'Community not found' });
     }
 
-    await Post.deleteMany({ communityID: req.params.communityId });
-    
+    const posts = await Post.find({ _id: { $in: community.postIDs } });
+    const postIds = posts.map(post => post._id);
+
+    await Comment.deleteMany({ _id: { $in: posts.flatMap(post => post.commentIDs) } });
+    await Post.deleteMany({ _id: { $in: postIds } });
     await Community.findByIdAndDelete(req.params.communityId);
     
-    res.json({ message: 'Community and associated posts deleted successfully' });
+    res.json({ message: 'Community, posts, and associated comments deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting community', error: error.message });
   }
@@ -692,8 +729,7 @@ app.delete('/api/posts/:postId', async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    await Comment.deleteMany({ postID: req.params.postId });
-    
+    await Comment.deleteMany({ _id: { $in: post.commentIDs } });
     await Post.findByIdAndDelete(req.params.postId);
     
     res.json({ message: 'Post and associated comments deleted successfully' });
@@ -709,9 +745,16 @@ app.delete('/api/comments/:commentId', async (req, res) => {
       return res.status(404).json({ message: 'Comment not found' });
     }
 
-    await Comment.deleteMany({ parentCommentID: req.params.commentId });
-    
-    await Comment.findByIdAndDelete(req.params.commentId);
+    const deleteNestedComments = async (commentId) => {
+      const nestedComments = await Comment.find({ commentIDs: commentId });
+      
+      for (let nestedComment of nestedComments) {
+        await deleteNestedComments(nestedComment._id);
+      }
+      await Comment.findByIdAndDelete(commentId);
+    };
+
+    await deleteNestedComments(req.params.commentId);
     
     res.json({ message: 'Comment and associated replies deleted successfully' });
   } catch (error) {
@@ -743,4 +786,67 @@ app.put('/api/comments/:commentId', async (req, res) => {
   }
 });
 
+app.put('/api/posts/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { title, content, communityID, linkFlairID } = req.body;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    post.title = title;
+    post.content = content;
+    post.communityID = communityID;
+    post.linkFlairID = linkFlairID || null;
+
+    await post.save();
+
+    res.status(200).json(post);
+  } catch (error) {
+    console.error('Error updating post:', error);
+    res.status(500).json({ message: 'Error updating post', error: error.message });
+  }
+});
+
+app.delete('/api/users/:userId', async (req, res) => {
+  if (!req.session.user || !req.session.user.isAdmin) {
+    return res.status(403).json({ message: 'Unauthorized: Admin access required' });
+  }
+
+  try {
+    const userId = req.params.userId;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const userCommunities = await Community.find({ members: user.displayName });
+    for (let community of userCommunities) {
+      const communityPosts = await Post.find({ _id: { $in: community.postIDs } });
+      for (let post of communityPosts) {
+        await Comment.deleteMany({ _id: { $in: post.commentIDs } });
+      }
+      await Post.deleteMany({ _id: { $in: community.postIDs } });
+      await Community.findByIdAndDelete(community._id);
+    }
+
+    const userPosts = await Post.find({ postedBy: user.displayName });
+    for (let post of userPosts) {
+      await Comment.deleteMany({ _id: { $in: post.commentIDs } });
+    }
+    await Post.deleteMany({ postedBy: user.displayName });
+    await Comment.deleteMany({ commentedBy: user.displayName });
+    await User.findByIdAndDelete(userId);
+
+    res.json({ message: 'User and all associated content deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Error deleting user', error: error.message });
+  }
+});
+
 app.listen(8000, () => {console.log("Server listening on port 8000...");});
+
+module.exports = app;

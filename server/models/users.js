@@ -8,6 +8,6 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true }, // Use bcrypt for hashing passwords
   isAdmin: { type: Boolean, default: false },
   reputation: { type: Number, default: 100 },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

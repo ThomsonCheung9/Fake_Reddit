@@ -15,6 +15,7 @@ import UserProfilePage from './profiles/UserProfilePage.js';
 import EditCommunityPage from './profiles/EditCommunityPage.js';
 import EditPostPage from './profiles/EditPostPage.js';
 import EditCommentPage from './profiles/EditCommentPage.js';
+import DynamicUserProfilePage from './profiles/DynamicUserProfilePage.js';
 axios.defaults.withCredentials = true;
 
 
@@ -54,7 +55,17 @@ export default function AppPhreddit() {
         <Route path="/login" element={<LoginPage setUserData={setUserData} userData={userData}/>} />
         <Route path="/home" element={<Phreddit setUserData={setUserData} userData={userData}/>} />
         <Route path="/register" element={<RegisterPage setUserData={setUserData} userData={userData}/>}/>
-        <Route path="/profile" element={<UserProfilePage setUserData={setUserData} userData={userData}/>} />
+        <Route 
+          path="/profile" 
+          element={<UserProfilePage 
+            setUserData={setUserData} 
+            userData={userData} 
+          />} 
+        />
+        <Route 
+        path="/profile/:userId" 
+        element={<DynamicUserProfilePage currentUserData={userData} setUserData={setUserData} />} 
+      />
         <Route path="/edit-community/:communityId" element={<EditCommunityPage userData={userData} />} />
         <Route path="/edit-post/:postId" element={<EditPostPage userData={userData} />} />
         <Route path="/edit-comment" element={<EditCommentPage userData={userData} />} />
@@ -83,59 +94,56 @@ function Phreddit( {userData, setUserData} ) {
 
   const handleSearch = async (event) => {
     if (event.key === "Enter") {
-      const term = event.target.value;
-      setSearchTerm(term);
-      setCreatingCommunity(false);
-    
-      if (term === '') {
-        setSearchResults([]);
-        setPostsOnScreen([]);
-        setCurrentView('searchResults');
-      } else {
-        try {
-          const searchParams = { 
-            term, 
-            order: orderPost,
-            userIdentifier: userData?.displayName || userData?.email
-          };
-  
-          const response = await axios.get('http://localhost:8000/api/search', {
-            params: searchParams
-          });
-  
-          const { userCommunityPosts = [], otherPosts = [], postsWithComments = [] } = response.data;
-          const combinedResults = [
-            ...userCommunityPosts.map(post => ({
-              ...post,
-              type: 'userCommunity',
-              matchingComments: postsWithComments.find(p => p._id === post._id)?.matchingComments || []
-            })),
-            ...otherPosts.map(post => ({
-              ...post,
-              type: 'other',
-              matchingComments: postsWithComments.find(p => p._id === post._id)?.matchingComments || []
-            }))
-          ];
-          const sortedResults = combinedResults.sort((a, b) => {
-            if (orderPost === "Newest") {
-              return new Date(b.postedDate) - new Date(a.postedDate);
-            } else if (orderPost === "Oldest") {
-              return new Date(a.postedDate) - new Date(b.postedDate);
+        const term = event.target.value;
+        setSearchTerm(term);
+        setCreatingCommunity(false);
+
+        if (term === '') {
+            setSearchResults([]);
+            setPostsOnScreen([]);
+            setCurrentView('searchResults');
+        } else {
+            try {
+                const searchParams = {
+                    term,
+                    order: orderPost,
+                    userIdentifier: userData?.displayName || userData?.email,
+                };
+
+                const response = await axios.get('http://localhost:8000/api/search', {
+                    params: searchParams,
+                });
+
+                const { userCommunityPosts = [], otherPosts = [], postsWithComments = [] } = response.data;
+
+                const combinedResults = [...userCommunityPosts, ...otherPosts].map(post => ({
+                    ...post,
+                    type: userCommunityPosts.some(p => p._id === post._id) ? 'userCommunity' : 'other',
+                    matchingComments:
+                        postsWithComments.find(p => p._id === post._id)?.matchingComments || [],
+                }));
+
+                const sortedResults = combinedResults.sort((a, b) => {
+                    if (orderPost === "Newest") {
+                        return new Date(b.postedDate) - new Date(a.postedDate);
+                    } else if (orderPost === "Oldest") {
+                        return new Date(a.postedDate) - new Date(b.postedDate);
+                    }
+                    return 0;
+                });
+
+                setSearchResults(sortedResults);
+                setPostsOnScreen(sortedResults);
+                setCurrentView('searchResults');
+            } catch (error) {
+                console.error('Error fetching search results:', error);
             }
-            return 0;
-          });
-  
-          setSearchResults(sortedResults);
-          setPostsOnScreen(sortedResults);
-          setCurrentView('searchResults');
-        } catch (error) {
-          console.error('Error fetching search results:', error);
+
+            setSelectedPost(null);
         }
-  
-        setSelectedPost(null);
-      }
     }
   };
+
 
   const handleNavigation = (view, communityID = null) => {
     if (view === 'createCommunity') {
