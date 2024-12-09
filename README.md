@@ -15,15 +15,16 @@ In the server directory do the following
 -npm install nodemon  
 -npm install bcrypt  
 
-To setup database
+To setup database  
 -node server/initializeDB.js  
 -node server/init.js  
 
-To run the program
+To run the program  
 -nodemon server/server.js  
--mongod
--npm start in the client directory
-node init.js Admin123@gmail.com Admin Password123
+-mongod  
+-npm start in the client directory  
+To initialize the database  
+-node init.js Admin123@gmail.com Admin Password123  
 
 Clearly explain the steps required to install and configure necessary packages,
 for both the server and the client, and the sequence of steps required to get
@@ -32,7 +33,26 @@ your application running.
 
 In the sections below, list and describe each contribution briefly.
 
-## Team Member 1 Contribution
+## Thomson
+1.Create Account\
+2.Login\
+3.Logout of account\
+4.The Banner\
+5.The Banner\
+8.Home Page View\
+9.Home Page View\
+13.Post Page View\
+14.Post Page View\
+17.New Comment page View\
 
-## Team Member 2 Contribution
-
+## Raymond
+6.The Navbar\
+7.The Navbar\
+10.Community Page View\
+11.Search Results Page View\
+12.Search Results Page View\
+15.New Community Page View\
+16.New Post Page View\
+18.User Profile Page View\
+19.User Profile Page View\
+UML and Jest Testing\
