@@ -1,34 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import Banner from '../Banner.js';
-import SideBar from '../Sidebar.js';
+import Banner from '../Banner'; 
+import SideBar from '../Sidebar';
 
 export default function UserProfilePage({ userData, setUserData }) {
-  const [activeView, setActiveView] = useState('posts');
+  const [currentView, setCurrentView] = useState('profile');
   const [userDetails, setUserDetails] = useState(null);
   const [userCommunities, setUserCommunities] = useState([]); 
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState([]);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [onCommentPage, setOnCommentPage] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
+  
 
-  const handleNavigation = (view, communityId = null) => {
-    switch(view) {
-      case 'home':
-        navigate('/home');
-        break;
-      case 'createCommunity':
-        navigate('/home', { state: { showCreateCommunity: true } });
-        break;
-      case 'community':
-        if (communityId) {
-          navigate(`/home?communityId=${communityId}`);
-        }
-        break;
-      default:
-        console.log('Unhandled navigation:', view);
+  const handleSearch = (e) => {
+    if (e.key === 'Enter') {
+      const searchTerm = e.target.value;
+      console.log('Searching for:', searchTerm);
     }
   };
+
+  const handleNavigation = (view, communityID = null) => {
+    if (view === 'createCommunity') {
+      navigate('/home', { state: { showCreateCommunity: true } });
+      setCurrentView('createCommunity');
+    } else if (view === 'home') {
+      navigate('/home');
+      setCurrentView('home');
+    } else if (view.startsWith('community/') && communityID) {
+      setCurrentView(view);
+    }
+    
+    setSelectedPost(null);
+    setOnCommentPage(null);
+  };
+
+  useEffect(() => {
+    setIsAdmin(userData && userData.isAdmin === true);
+  
+    if (userData && userData.isAdmin) {
+      const fetchAllUsers = async () => {
+        try {
+          const response = await axios.get('http://localhost:8000/api/users', {
+            withCredentials: true
+          });
+          setAllUsers(response.data);
+        } catch (error) {
+          console.error('Error fetching users:', error);
+          if (error.response && error.response.status === 403) {
+            alert('You do not have admin privileges');
+          }
+        }
+      };
+      fetchAllUsers();
+    }
+  }, [userData]);
 
   useEffect(() => {
     if (!userData) {
@@ -59,6 +89,44 @@ export default function UserProfilePage({ userData, setUserData }) {
     fetchUserDetails();
   }, [userData, navigate]);
 
+  const handleDeleteUser = async (userToDelete) => {
+    const confirmDelete = window.confirm(`Are you sure you want to delete user ${userToDelete.displayName}? All their communities, posts, and comments will be permanently deleted.`);
+    
+    if (confirmDelete) {
+      try {
+        await axios.delete(`http://localhost:8000/api/users/${userToDelete._id}`);
+        setAllUsers(allUsers.filter(user => user._id !== userToDelete._id));
+        alert(`User ${userToDelete.displayName} has been deleted.`);
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('Failed to delete user');
+      }
+    }
+  };
+
+  const renderUsersList = () => {
+    if (!isAdmin) return null;
+
+    return (
+      <div className="users-list">
+        <h3>All Phreddit Users</h3>
+        {allUsers.map(user => (
+          <div key={user._id} className="user-item">
+            <div 
+              onClick={() => navigate(`/profile/${user._id}`)} 
+              style={{ cursor: 'pointer' }}
+            >
+              <span>{user.displayName}</span>
+              <span>{user.email}</span>
+              <span>Reputation: {user.reputation}</span>
+            </div>
+            <button onClick={() => handleDeleteUser(user)}>Delete</button>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const handleEditCommunity = (community) => {
     navigate(`/edit-community/${community._id}`, { state: { community } });
   };
@@ -69,6 +137,7 @@ export default function UserProfilePage({ userData, setUserData }) {
       try {
         await axios.delete(`http://localhost:8000/api/communities/${communityId}`);
         setUserCommunities(userCommunities.filter(comm => comm._id !== communityId));
+        navigate('/home');
       } catch (error) {
         console.error('Error deleting community:', error);
         alert('Failed to delete community');
@@ -86,6 +155,7 @@ export default function UserProfilePage({ userData, setUserData }) {
       try {
         await axios.delete(`http://localhost:8000/api/posts/${postId}`);
         setPosts(posts.filter(post => post._id !== postId));
+        navigate('/home');
       } catch (error) {
         console.error('Error deleting post:', error);
         alert('Failed to delete post');
@@ -103,6 +173,7 @@ export default function UserProfilePage({ userData, setUserData }) {
       try {
         await axios.delete(`http://localhost:8000/api/comments/${commentId}`);
         setComments(comments.filter(comment => comment._id !== commentId));
+        navigate('/home');
       } catch (error) {
         console.error('Error deleting comment:', error);
         alert('Failed to delete comment');
@@ -113,24 +184,22 @@ export default function UserProfilePage({ userData, setUserData }) {
   if (!userDetails) return <div>Loading...</div>;
 
   return (
-    <div>
+    <div style={{marginLeft: '180px', marginTop: '50px'}}>
       <Banner 
-        handleSearch={() => {}}
-        setCurrentView={setActiveView} 
-        currentView="profile" 
-        userData={userData} 
+        handleSearch={handleSearch}
+        setCurrentView={setCurrentView}
+        currentView={currentView}
+        userData={userData}
         setUserData={setUserData}
-        onWelcomePage={false}
       />
-      <div style={{display: 'flex'}}>
-        <SideBar 
-          currentView="profile"
+      <div className="content-container">
+        <SideBar
+          currentView={currentView}
           handleNavigation={handleNavigation}
           communities={userCommunities}
+          setSelectedPost={setSelectedPost}
+          setOnCommentPage={setOnCommentPage}
           userData={userData}
-          setSelectedPost={() => {}}
-          setOnCommentPage={() => {}}
-          fetchPosts={() => {}}
         />
         <div className="user-profile-container" style={{marginLeft: '180px', marginTop: '50px', flex: 1}}>
           <div className="user-info">
@@ -141,28 +210,38 @@ export default function UserProfilePage({ userData, setUserData }) {
           </div>
 
           <div className="profile-navigation">
+            {isAdmin && (
+              <button 
+                onClick={() => setCurrentView('users')}
+                style={currentView === 'users' ? { backgroundColor: 'grey', color: 'white' } : {}}
+              >
+                Users
+              </button>
+            )}
             <button 
-              onClick={() => setActiveView('posts')}
-              style={activeView === 'posts' ? { backgroundColor: 'grey', color: 'white' } : {}}
+              onClick={() => setCurrentView('posts')}
+              style={currentView === 'posts' ? { backgroundColor: 'grey', color: 'white' } : {}}
             >
               Posts
             </button>
             <button 
-              onClick={() => setActiveView('communities')}
-              style={activeView === 'communities' ? { backgroundColor: 'grey', color: 'white' } : {}}
+              onClick={() => setCurrentView('communities')}
+              style={currentView === 'communities' ? { backgroundColor: 'grey', color: 'white' } : {}}
             >
               Communities
             </button>
             <button 
-              onClick={() => setActiveView('comments')}
-              style={activeView === 'comments' ? { backgroundColor: 'grey', color: 'white' } : {}}
+              onClick={() => setCurrentView('comments')}
+              style={currentView === 'comments' ? { backgroundColor: 'grey', color: 'white' } : {}}
             >
               Comments
             </button>
           </div>
 
           <div className="profile-content">
-            {activeView === 'communities' && (
+            {currentView === 'users' && renderUsersList()}
+
+            {currentView === 'communities' && (
               <div className="communities-list">
                 <h3>My Communities</h3>
                 {userCommunities.length === 0 ? (
@@ -181,7 +260,7 @@ export default function UserProfilePage({ userData, setUserData }) {
               </div>
             )}
 
-            {activeView === 'posts' && (
+            {currentView === 'posts' && (
               <div className="posts-list">
                 <h3>My Posts</h3>
                 {posts.length === 0 ? (
@@ -200,7 +279,7 @@ export default function UserProfilePage({ userData, setUserData }) {
               </div>
             )}
 
-            {activeView === 'comments' && (
+            {currentView === 'comments' && (
                 <div className="comments-list">
                   <h3>My Comments</h3>
                   {comments.length === 0 ? (

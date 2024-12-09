@@ -106,7 +106,7 @@ function createCommunity(communityObj) {
     startDate: communityObj.startDate,
     members: communityObj.members,
     memberCount: communityObj.memberCount,
-    createdBy: communityObj.createdBy || 'didnt work', //testing
+    createdBy: communityObj.createdBy
   });
   return newCommunityDoc.save();
 }
