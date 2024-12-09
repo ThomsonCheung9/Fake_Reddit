@@ -64,7 +64,7 @@ export default function SideBar({ currentView, handleNavigation, communities,
                 {/* visuals lol */}
                 {userData && community.members.includes(userData.displayName) && (
                   <span style={{ marginLeft: '5px', color: 'green', fontSize: '0.8em' }}>
-                    ✓
+                    ✅
                   </span>
                 )}
               </a>

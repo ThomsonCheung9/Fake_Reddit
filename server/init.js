@@ -105,6 +105,8 @@ function createCommunity(communityObj) {
     postIDs: communityObj.postIDs,
     startDate: communityObj.startDate,
     members: communityObj.members,
+    memberCount: communityObj.memberCount,
+    createdBy: communityObj.createdBy
   });
   return newCommunityDoc.save();
 }
